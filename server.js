@@ -5,6 +5,8 @@ const fs = require('fs');
 const app = express();
 const PORT = process.env.PORT || 3001;
 
+
+
 //Static middleware
 app.use(express.static(path.join(__dirname, 'public')));
 
@@ -34,15 +36,16 @@ app.post('/api/notes', (req, res) => {
     } );
 } );
 
+// API Route delete request
 app.delete('/api/notes/:id', (req, res) => {
     const idToDelete = parseInt(req.params.id);
-    fs.readFile('./db/db.json', 'utf8', (err, data) => {
-        if (err) throw err;
-        notes = [].concat(JSON.parse(data));
-        notes = notes.filter(note => note.id !== idToDelete);
-        fs.writeFile('./db/db.json', JSON.stringify(notes), (err) => {
+    fs.readFileAsync('./db/db.json', 'utf8').then (data => {
+        const notes = [].concat(JSON.parse(data));
+        const newNotesData = [];
+        notes.forEach(note => { if (note.id !== idToDelete) newNotesData.push(note); } );
+        fs.writeFile('./db/db.json', JSON.stringify(newNotesData), (err) => {
             if (err) throw err;
-            res.json(notes);
+            res.json(newNotesData);
         } );
     } );
 } );
