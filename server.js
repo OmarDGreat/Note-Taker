@@ -5,16 +5,22 @@ const fs = require('fs');
 const app = express();
 const PORT = process.env.PORT || 3001;
 
-
-
 //Static middleware
 app.use(express.static(path.join(__dirname, 'public')));
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-//API Routes
 
+
+// Function to delete specific note based on id
+function findById(id, notesArray) {
+    const result = notesArray.filter(note => note.id === id)[0];
+    return result;
+  }
+
+
+//API Routes
 app.get('/api/notes', (req, res) => {
     fs.readFile('./db/db.json', 'utf8', (err, data) => {
         if (err) throw err;
@@ -28,7 +34,19 @@ app.post('/api/notes', (req, res) => {
     fs.readFile('./db/db.json', 'utf8', (err, data) => {
         if (err) throw err;
         notes = [].concat(JSON.parse(data));
-        notes.push(req.body);
+        let newNote;
+        if (!notes.length) {
+            newNote = {
+                id: 1,
+                ...req.body
+            };
+        } else {
+            newNote = {
+                id: notes[notes.length-1].id + 1,
+                ...req.body
+            };
+        }
+        notes.push(newNote);
         fs.writeFile('./db/db.json', JSON.stringify(notes), (err) => {
             if (err) throw err;
             res.json(notes);
@@ -38,17 +56,18 @@ app.post('/api/notes', (req, res) => {
 
 // API Route delete request
 app.delete('/api/notes/:id', (req, res) => {
-    const idToDelete = parseInt(req.params.id);
-    fs.readFileAsync('./db/db.json', 'utf8').then (data => {
-        const notes = [].concat(JSON.parse(data));
-        const newNotesData = [];
-        notes.forEach(note => { if (note.id !== idToDelete) newNotesData.push(note); } );
-        fs.writeFile('./db/db.json', JSON.stringify(newNotesData), (err) => {
+    fs.readFile('./db/db.json', 'utf8', (err, data) => {
+        if (err) throw err;
+        notes = [].concat(JSON.parse(data));
+        const note = findById(req.params.id, notes);
+        notes.splice(notes.indexOf(note), 1);
+        fs.writeFile('./db/db.json', JSON.stringify(notes), (err) => {
             if (err) throw err;
-            res.json(newNotesData);
+            res.json(notes);
         } );
     } );
 } );
+
 
 //HTML Routes
 app.get('/notes', (req, res) => {
